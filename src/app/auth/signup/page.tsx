@@ -1,23 +1,22 @@
 "use client";
 import React, { useState } from "react";
 import signup from "@public/undraw_sign-up.svg";
-// import Image from "next/image";
 import { FaEye, FaEyeSlash, FaFacebook, FaLinkedin } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import Link from "next/link";
-import { useDispatch,  useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import Spinner from "@/components/Spinner";
 import { UserService } from "@/services/UserService";
 import z from "zod"
 import { setLoading } from '@/redux/AuthSlice/AuthSlice'
-// import { redirect } from "next/navigation";
 import { useRouter } from "next/navigation";
-// import "@/app/globals.css"
+
 export default function page() {
   const router = useRouter()
+  const dispatch = useDispatch()
   const [showPassword, setShowPassword] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string[]>>({});
-
+  const [generalErrors, setGeneralErrors] = useState<string | null>(null)
   const [signupData, setSignupData] = useState({
     fullName: '',
     email: '',
@@ -25,10 +24,10 @@ export default function page() {
     confirmPassword: ''
   })
   const { loading } = useSelector((store: any) => store.auth)
-  const dispatch = useDispatch()
+
   // validation
   const UserSchema = z.object({
-    fullName: z.string().min(3, 'fullName must be atleast 3 characters'),
+    fullName: z.string().min(3, 'Name must be atleast 3 characters'),
     email: z.string().email('Invalid email format'),
     password: z.string().min(8, 'Password must contain atleast 8 characters'),
     confirmPassword: z.string(),
@@ -43,22 +42,21 @@ export default function page() {
       ...prev,
       [id]: value
     }))
-
-    console.log(signupData)
+    setErrors({})
+    setGeneralErrors(null)
+    // console.log(signupData)
   }
+
+
   const handleTogglePassword = (id: any) => {
-    // console.log(field)
     setShowPassword(prev => (prev === id ? null : id));
   };
 
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-  
-    console.log("loading value before submitting", loading);
     dispatch(setLoading(true))
-    console.log("submitting the form..", signupData);
-    console.log('loading updated value',loading)
+
     const result = UserSchema.safeParse(signupData);
     const zodErrors: Record<string, string[]> = {};
 
@@ -81,7 +79,7 @@ export default function page() {
       if (res.status !== 201) {
         console.log("technical error")
       }
-      
+
       router.push('/dashboard')
       setSignupData({
         fullName: '',
@@ -90,12 +88,16 @@ export default function page() {
         confirmPassword: ''
       });
       setLoading(false)
-      // redirect('/dashboard')
-    } catch (err) {
-      console.log('errors: ', err)
+      
+    } catch (err: any) {
+      console.log('errors: ', err.response.data.error)
+      setGeneralErrors(err.response.data.error)
+      
+
     }
     dispatch(setLoading(false))
   }
+
 
   return (
     <div className="container-fluid vh-100">
@@ -113,8 +115,6 @@ export default function page() {
         {/* Form Section */}
         <div className="col-md-6 d-flex align-items-center justify-content-center">
           <form className="form-width  p-4  rounded  bg-white" onSubmit={handleSubmit}>
-            {/* <form className="form-width  p-4  rounded  bg-white" > */}
-            {/* <p className="mb-0">Welcome Back!</p> */}
             <h2 className="mb-4 fs-4">Create an account</h2>
 
             {/* Fullname  */}
@@ -129,7 +129,7 @@ export default function page() {
                 value={signupData.fullName}
                 onChange={handleChange}
                 placeholder="Enter your name"
-              // required
+
               />
               {errors?.fullName && <p id="fullNameError" className="form-text text-danger">{errors?.fullName?.[0]}</p>}
             </div>
@@ -169,7 +169,7 @@ export default function page() {
                 <span
                   className="input-group-text"
                   style={{ cursor: "pointer" }}
-                  onClick={()=>handleTogglePassword("id1")}
+                  onClick={() => handleTogglePassword("id1")}
                 >
                   {showPassword === "id1" ? <FaEye /> : <FaEyeSlash />}
                 </span>
@@ -205,10 +205,10 @@ export default function page() {
 
             {/* submit button */}
             <button type="submit" className="btn btn-primary w-100">
-              {loading==true ? <Spinner color="#fff"/> : 'Signup'} 
+              {loading == true ? <Spinner color="#fff" /> : 'Signup'}
               {/* signup */}
             </button>
-
+            {generalErrors && <p id="generalErrors" className="form-text text-danger">{generalErrors}</p>}
             {/* or */}
             <div className="mt-4">
               <div className="d-flex align-items-center justify-content-center  gap-2">
@@ -251,15 +251,7 @@ export default function page() {
               </div>
             </div>
 
-
-            {/* line */}
-            {/* <div className="mt-4 mt-lg-5">
-              <div className="d-flex align-items-center justify-content-center  gap-2">
-                <div className="w-100" style={{ height: '1px', backgroundColor: "#dee2e6" }}></div>
-               
-              </div>
-            </div> */}
-            {/* signup*/}
+            {/* Already signin? */}
             <div className="text-left mt-3">
               <small>
                 Already have an account?{" "}

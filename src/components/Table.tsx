@@ -1,35 +1,54 @@
 "use client";
 import Modal from "./Modal";
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useState } from "react";
 import FileUploadBox from "./FileUploadbox";
-import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import { setEditFile, setShowModal } from "@/redux/FileSlice/FileSlice";
 import { setShowBox } from "@/redux/AuthSlice/AuthSlice";
-// const Table = ({ userfiles, fetchfiles, handleFileSubmit, showBox, setShowBox, file, isUploading, setFile }) => {
+import Spinner from "./Spinner";
+import '@/app/globals.css'
+
 const Table = () => {
-  // const [modal, setModal] = useState(false);
-  const dispatch = useDispatch()
-  // const [deleteFileName, setDeleteFileName] = useState(null);
-  const [deleteFile, setDeleteFile] = useState(false)
-  const [userfiles, setUserFiles] = useState([])
-  const { files, showModal } = useSelector((store: any) => store.file)
-  console.log('files:::', files)
+  const dispatch = useDispatch();
+  const [deleteFile, setDeleteFile] = useState(false);
+  const { files, showModal } = useSelector((store:any) => store.file);
+  const { loading } = useSelector((store:any) => store.auth);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5; 
 
+  // total number of pages=====
+  const totalPages = Math.ceil(files.length / itemsPerPage);
 
-  // useEffect(() => {
-  //   fetchfiles();
-  //   // setDeletedFile(false)
-  // }, []);
+  // files for the current page====
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentFiles = files.slice(indexOfFirstItem, indexOfLastItem);
 
+  const handlePagination = (page:number) => {
+    setCurrentPage(page);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   // Download files
-  const handleDownload = async (file: any) => {
+  const handleDownload = async (file:any) => {
     const response = await fetch(`${file.filepath}?download=true`);
+    console.log("response",response)
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
+    console.log("URL", url)
     const a = document.createElement("a");
     a.href = url;
     a.download = file.filename;
@@ -39,14 +58,10 @@ const Table = () => {
     window.URL.revokeObjectURL(url);
   };
 
+ 
   return (
     <>
-      {showModal ? (<Modal
-        // show={modal}
-        deleteFile={deleteFile}
-      // deleteFileName={deleteFileName}
-      // onConfirm={handleDeleteConfirm}
-      />) : ("")}
+      {showModal && <Modal deleteFile={deleteFile} />}
 
       <FileUploadBox />
       <div className="container-fluid mt-4">
@@ -59,48 +74,71 @@ const Table = () => {
         </div>
 
         {/* Data Rows */}
-        {files && files.length > 0 ? (
-          files.map((file: any, index: number) => (
-            <div key={index} className="row align-items-center py-2 border-bottom">
-              <div className="col-12 col-md-3 fw-medium">{file.filename}</div>
-              <div className="col-12 col-md-3 text-muted">{file.filetype}</div>
-              <div className="col-12 col-md-3 text-muted">
-                {new Date(file.created_at).toLocaleString()}
-              </div>
-              <div className="col-12 col-md-3 d-flex justify-content-md-end gap-3 mt-2 mt-md-0">
-                <button
-                  className="btn btn-link p-0 text-primary"
-                  onClick={() => {
-                    dispatch(setShowBox(true));
-                   dispatch(setEditFile(file));;
-                  }}
-                >Edit</button>
-                <button
-                  className="btn btn-link p-0 text-danger"
-                  onClick={() => {
-                    setDeleteFile(file);
-                    dispatch(setShowModal(true));
-                  }}
-                >
-                  Delete
-                </button>
-                {/* <a
-                  href={`${file.filepath}?download=true`}
-                  className="btn btn-link p-0 text-success"
-                  download={file.filename}
-                >
-                  Download
-                </a> */}
-                <button onClick={() => handleDownload(file)} className="btn btn-link p-0 text-success">
-                  Download
-                </button>
-              </div>
-            </div>
-          ))
+        {loading ? (
+          <div className="d-flex align-items-center justify-content-center w-100 mt-5">
+            <Spinner color='#000' />
+          </div>
         ) : (
-          <div className="text-center text-muted py-3">No files found</div>
+          currentFiles.length > 0 ? (
+            currentFiles.map((file:any, index:number) => (
+              <div key={index} className="row align-items-center py-2 border-bottom">
+                <div className="col-12 col-md-3 fw-medium">{file.filename}</div>
+                <div className="col-12 col-md-3 text-muted">{file.filetype}</div>
+                <div className="col-12 col-md-3 text-muted">
+                  {new Date(file.created_at).toLocaleString()}
+                </div>
+                <div className="col-12 col-md-3 d-flex justify-content-md-end gap-3 mt-2 mt-md-0">
+                  <button
+                    className="btn btn-link p-0 text-primary"
+                    onClick={() => {
+                      dispatch(setShowBox(true));
+                      dispatch(setEditFile(file));
+                    }}
+                  >Edit</button>
+                  <button
+                    className="btn btn-link p-0 text-danger"
+                    onClick={() => {
+                      setDeleteFile(file);
+                      dispatch(setShowModal(true));
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button onClick={() => handleDownload(file)} className="btn btn-link p-0 text-success">
+                    Download
+                  </button>
+                  <a href={file.filepath} target="_blank">view</a>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center text-muted py-3">No files found</div>
+          )
         )}
       </div>
+
+      {/* Pagination controls */}
+      {files.length > itemsPerPage && (
+        <nav aria-label="Table pagination" className='mt-5 d-flex align-items-center justify-content-end'>
+          <ul className="pagination">
+            <li className={`page-item cursor-pointer ${currentPage === 1 ? 'disabled' : ''}`}>
+              <button className="page-link" onClick={handlePrevPage} disabled={currentPage === 1}>Previous</button>
+            </li>
+
+            {[...Array(totalPages).keys()].map(number => (
+              <li key={number} className={`page-item cursor-pointer ${currentPage === number + 1 ? 'active' : ''}`}>
+                <button onClick={() => handlePagination(number + 1)} className="page-link">
+                  {number + 1}
+                </button>
+              </li>
+            ))}
+
+            <li className={`page-item cursor-pointer ${currentPage === totalPages ? 'disabled' : ''}`}>
+              <button className="page-link" onClick={handleNextPage} disabled={currentPage === totalPages}>Next</button>
+            </li>
+          </ul>
+        </nav>
+      )}
     </>
   );
 };

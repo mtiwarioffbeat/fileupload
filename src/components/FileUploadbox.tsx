@@ -3,73 +3,83 @@ import React, { useState, useRef, useEffect } from "react";
 import { FaFileUpload } from "react-icons/fa";
 import { RxCross1 } from "react-icons/rx";
 import axios from "axios";
-import { setShowBox } from "@/redux/AuthSlice/AuthSlice";
+import { setLoading, setShowBox } from "@/redux/AuthSlice/AuthSlice";
 import { useDispatch, useSelector } from "react-redux";
-import { UserService } from "@/services/UserService";
+import { fetchfiles, UserService } from "@/services/UserService";
 import { setFiles, setEditFile } from "@/redux/FileSlice/FileSlice";
 
 const FileUploadBox = () => {
-  const { showBox, file } = useSelector((store: any) => store.auth)
+  const { showBox, loading } = useSelector((store: any) => store.auth)
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dispatch = useDispatch()
   const { editFile } = useSelector((store: any) => store.file)
-
-  const [selectFile, setSelectFile] = useState<any>()
-
+  const [imgpreview, setImagePreview] = useState<string>()
+  const [selectFile, setSelectFile] = useState<any>(null)
+  const [fileisempty, setFileIsEmpty] = useState<boolean>(false)
   useEffect(() => {
-    fetchfiles()
+    dispatch(setLoading(true))
+    async function fetchingfiles() {
+      const data = await fetchfiles()
+      dispatch(setFiles(data))
+      dispatch(setLoading(false))
+
+    }
+    fetchingfiles()
   }, [])
+
+
   const handleFileChange = (e: any) => {
     const selectedFile = e.target.files[0];
+    const url = URL.createObjectURL(selectedFile)
+    setImagePreview(url)
     setSelectFile(selectedFile)
-    if (selectedFile) {
-      // dispatch(setFile(selectedFile));
-      // console.log("Selected file:", selectedFile);
-    }
   };
 
-  const fetchfiles = async () => {
-    const fileRes = await axios.get("/api/users/files");
-    console.log("File list from backend:", fileRes.data);
-    dispatch(setFiles(fileRes.data));
-    return
-  }
+
 
 
   const handleSubmit = async () => {
     const formData = new FormData();
-      // console.log("Uploading file:", file.name);
-    //  const dispatch = useDispatch()
+   
+    if (selectFile == null) {
+      setFileIsEmpty(true)
+      return 
+    }
+    dispatch(setLoading(true))
+
     try {
-      console.log("editFile",editFile)
       if (editFile) {
         formData.append("file", selectFile);
-        formData.append("oldFileId",editFile.id)
-        console.log("if block")
-        const update =  await axios.put('/api/users/files',formData, {
+        formData.append("oldFileId", editFile.id)
+        const update = await axios.put('/api/users/files', formData, {
           headers: { 'Content-Type': "multipart/form-data" },
           withCredentials: true,
         });
 
-        fetchfiles()
-         dispatch(setShowBox(false));
-        dispatch(setEditFile(null)); 
+        dispatch(setLoading(true))
+
+        // refresh
+        const data = await fetchfiles()
+        dispatch(setFiles(data))
+        dispatch(setLoading(false))
+
+        dispatch(setShowBox(false));
+        dispatch(setEditFile(null));
         setSelectFile(null)
-      //   const res = await axios.delete("/api/users/files", {
-      //   data: { file: editFile },
-      // });
-      // console.log("deleted and update",res)
-        console.log("updated :", update)
-        return 
+        return
       }
 
-      
+
+      dispatch(setLoading(true))
       const data: any = await UserService.FileSubmit(selectFile);
 
       if (data) {
         dispatch(setShowBox(false));
-        dispatch(setEditFile(null)); 
-        fetchfiles(); // refresh 
+        dispatch(setEditFile(null))
+        const filesA = await fetchfiles()
+        setSelectFile(null)
+        dispatch(setFiles(filesA))
+        dispatch(setLoading(false))
       }
     } catch (err) {
       console.log("error while file upload", err);
@@ -81,13 +91,12 @@ const FileUploadBox = () => {
         <div
           className="modal fade show d-block"
           style={{ background: "rgba(0,0,0,0.5)" }}
-          //   tabIndex="-1"
           role="dialog"
           onClick={() => dispatch(setShowBox(false))}
         >
           <div
             className="modal-dialog modal-dialog-centered"
-            onClick={(e) => e.stopPropagation()} // ================prevent backdrop click=============================>
+            onClick={(e) => e.stopPropagation()} //prevent backdrop click
           >
             <div className="modal-content p-4 text-center">
               <div className="d-flex justify-content-between align-items-center mb-3">
@@ -102,6 +111,7 @@ const FileUploadBox = () => {
                   onClick={() => {
                     dispatch(setShowBox(false))
                     dispatch(setEditFile(null))
+                    setFileIsEmpty(false)
                   }}
                 />
               </div>
@@ -112,24 +122,31 @@ const FileUploadBox = () => {
                 onClick={() => fileInputRef.current?.click()}
               >
                 {selectFile ? (
-                  <div className="d-flex align-items-center gap-2">
-                    <strong>{selectFile?.name} </strong>
-                    <RxCross1
-                      className=""
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // dispatch(setFile(null));
-                        setSelectFile(null)
-                        dispatch(setEditFile(null))
-                      }}
-                    />
+                  <div className="d-flex flex-column align-items-center gap-2">
+                    <div>
+                      <strong>{selectFile?.name} </strong>
+                      <RxCross1
+
+                        className=""
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectFile(null)
+                          // dispatch(setEditFile(null))
+                          setFileIsEmpty(false)
+                        }}
+                      />
+                    </div>
+
+                    <img src={imgpreview} width={100} />
                   </div>
                 ) : (
                   <div className="d-flex flex-column align-items-center">
                     <FaFileUpload size={75} />
-                    <span className="mt-2 text-danger">
+                    {fileisempty ? (<span className="mt-2 text-danger">
+                      Please select a file
+                    </span>):(<span className="mt-2 text-primary">
                       Click here to select a file
-                    </span>
+                    </span>)}
                   </div>
                 )}
                 <input
@@ -144,10 +161,10 @@ const FileUploadBox = () => {
                 <button
                   className="btn btn-secondary me-2"
                   onClick={() => {
-                    // dispatch(setFile(null))
                     setSelectFile(null)
                     dispatch(setShowBox(false))
                     dispatch(setEditFile(null))
+                    setFileIsEmpty(false)
                   }}
                 >
                   Cancel
@@ -155,10 +172,9 @@ const FileUploadBox = () => {
                 <button
                   className="btn btn-primary"
                   onClick={handleSubmit}
-                // disabled={isUploading || !file}
+                  disabled={loading}
                 >
-                  {/* {isUploading ? "Uploading..." : "Submit"} */}
-                  Submittttttttttttt
+                  {loading ? "Submitting.." : "Submit"}
                 </button>
               </div>
             </div>

@@ -1,7 +1,6 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import login from "@public/undraw_sign-in.svg";
-import Image from "next/image";
 import { FaEye, FaEyeSlash, FaFacebook, FaLinkedin } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import Link from "next/link";
@@ -11,19 +10,16 @@ import { useRouter } from "next/navigation";
 import { setLoading } from "@/redux/AuthSlice/AuthSlice";
 import { UserService } from "@/services/UserService";
 import z from 'zod'
-// import "@/app/globals.css"
+
+
 export default function page() {
   const router = useRouter();
   const dispatch = useDispatch()
   const [showPassword, setShowPassword] = useState(false);
-  const [loginData, setLoginData] = useState({
-    email: '',
-    password: ''
-  })
+  const [loginData, setLoginData] = useState({email: '',password: ''})
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const { loading } = useSelector((store: any) => store.auth)
-
-  // useEffect(()=>{return console.log("loading value:",loading)},[])
+  const [generalErrors, setGeneralErrors] = useState<string | null>(null)
   const LoginSchema = z.object({
     email: z.string().email('Invalid email format'),
     password: z.string().min(8, 'Password must contain atleast 8 characters')
@@ -36,14 +32,12 @@ export default function page() {
       ...prev,
       [id]: value
     }))
-    console.log(loginData)
+    setGeneralErrors(null)
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()
     dispatch(setLoading(true))
-
-       console.log("submittting loign form..+>", loginData);
         const result = LoginSchema.safeParse(loginData);
        const zodErrors: Record<string, string[]> = {};
        if (!result.success) {
@@ -63,24 +57,18 @@ export default function page() {
 
        try {
             const res = await UserService.LoginUser(loginData)
-            console.log("i am in login page", res)
             if (res.status !== 200) {
               console.log("technical error")
-            }
-            console.log("login is working", res)
-            router.push('/dashboard')
-            setLoginData({
-             
-              email: '',
-              password: '',
               
-            });
-            setLoading(false)
-            // redirect('/dashboard')
-           
-          } catch (err) {
+            }
+            router.push('/dashboard')
+            // setLoading(false)
+            
+          } catch (err:any) {
             console.log('errors: ', err)
+            setGeneralErrors(err.response.data.error)
           }
+          setLoginData({email: '',password: ''});
           dispatch(setLoading(false))
   }
 
@@ -100,7 +88,6 @@ export default function page() {
         {/* Form Section */}
         <div className="col-md-6 d-flex align-items-center justify-content-center">
           <form className="form-width  p-4  rounded  bg-white" onSubmit={handleSubmit}>
-            {/* <form className="form-width  p-4  rounded  bg-white" > */}
               <p className="mb-0">Welcome Back!</p>
               <h2 className="mb-4 fs-4">Login to your account</h2>
 
@@ -118,7 +105,7 @@ export default function page() {
                   value={loginData.email}
                   onChange={handleChange}
                 />
-                {/* {errors?.email && <p id="loginemailError" className="form-text text-danger">{errors?.email?.[0]}</p>} */}
+                {errors?.email && <p id="loginemailError" className="form-text text-danger">{errors?.email?.[0]}</p>}
               </div>
 
               {/* password  */}
@@ -144,14 +131,14 @@ export default function page() {
                     {showPassword ? <FaEye /> : <FaEyeSlash />}
                   </span>
                 </div>
-                {/* {errors?.password && <p id="loginPasswordError" className="form-text text-danger">{errors?.password?.[0]}</p>} */}
+                {errors?.password && <p id="loginPasswordError" className="form-text text-danger">{errors?.password?.[0]}</p>}
               </div>
 
               {/* submit button */}
               <button type="submit" className="btn btn-primary w-100">
                 {loading == true ? <Spinner color="#fff" /> : "login"}
               </button>
-
+              {generalErrors && <p className="form-text text-danger">{generalErrors}</p>}
               {/* or */}
               <div className="mt-4">
                 <div className="d-flex align-items-center justify-content-center  gap-2">
