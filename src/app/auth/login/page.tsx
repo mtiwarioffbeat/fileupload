@@ -33,6 +33,7 @@ export default function page() {
       [id]: value
     }))
     setGeneralErrors(null)
+    setErrors({})
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {

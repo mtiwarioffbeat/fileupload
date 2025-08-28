@@ -13,10 +13,11 @@ const Table = () => {
   const [deleteFile, setDeleteFile] = useState(false);
   const { files, showModal } = useSelector((store:any) => store.file);
   const { loading } = useSelector((store:any) => store.auth);
-
+  const [tempStartIndex,setTempStartIndex] = useState<number>(0)
+  const [tempEndIndex,setTempEndIndex] = useState<number>(tempStartIndex+5)
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; 
+  const itemsPerPage = 2;
 
   // total number of pages=====
   const totalPages = Math.ceil(files.length / itemsPerPage);
@@ -25,20 +26,33 @@ const Table = () => {
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentFiles = files.slice(indexOfFirstItem, indexOfLastItem);
-
+  // const tempStartIndex=0
+  // const tempEndIndex=5
   const handlePagination = (page:number) => {
     setCurrentPage(page);
+ 
   };
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
+      console.log("total pages",totalPages)
+    }
+       console.log(currentPage)
+    if(currentPage==tempEndIndex && currentPage<totalPages){
+      setTempEndIndex(tempEndIndex+5)
+      setTempStartIndex(tempStartIndex+5)
     }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
+    }
+       console.log(currentPage)
+    if(currentPage==tempStartIndex && currentPage>1){
+      setTempEndIndex(tempEndIndex-5)
+      setTempStartIndex(tempStartIndex-5)
     }
   };
 
@@ -125,7 +139,7 @@ const Table = () => {
               <button className="page-link" onClick={handlePrevPage} disabled={currentPage === 1}>Previous</button>
             </li>
 
-            {[...Array(totalPages).keys()].map(number => (
+            {[...Array(totalPages).keys()].slice(tempStartIndex,tempEndIndex).map(number => (
               <li key={number} className={`page-item cursor-pointer ${currentPage === number + 1 ? 'active' : ''}`}>
                 <button onClick={() => handlePagination(number + 1)} className="page-link">
                   {number + 1}

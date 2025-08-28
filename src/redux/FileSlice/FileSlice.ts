@@ -21,20 +21,24 @@ const fileSlice = createSlice({
     loading: false,
     fileInfo: null as any,
     error: null as string | null,
-    files:[],
-    showModal:false,
+    files: [],
+    showModal: false,
     editFile: null,
+    // initialLoadingTable: false
   },
   reducers: {
-      setFiles: (state, action) => {
+    setFiles: (state, action) => {
       state.files = action.payload;
     },
-    setShowModal:(state,action)=>{
+    setShowModal: (state, action) => {
       state.showModal = action.payload
     },
     setEditFile: (state, action) => {
-  state.editFile = action.payload;
-},
+      state.editFile = action.payload;
+    },
+    // setInitialLoadingTable: (state, action) => {
+    //   state.initialLoadingTable = action.payload
+    // }
   },
   extraReducers: (builder) => {
     builder
@@ -53,5 +57,5 @@ const fileSlice = createSlice({
   },
 });
 
-export const {setFiles,setShowModal,setEditFile} = fileSlice.actions
+export const { setFiles, setShowModal, setEditFile } = fileSlice.actions
 export default fileSlice.reducer;

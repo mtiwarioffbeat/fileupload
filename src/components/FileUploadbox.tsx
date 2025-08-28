@@ -22,7 +22,6 @@ const FileUploadBox = () => {
       const data = await fetchfiles()
       dispatch(setFiles(data))
       dispatch(setLoading(false))
-
     }
     fetchingfiles()
   }, [])

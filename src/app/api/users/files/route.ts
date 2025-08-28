@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     // Convert Request (Web API) -> Express-like object
     const formData = await req.formData();  
     const file = formData.get("file") as File ;
-    console.log("file value:",file)
+    
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
@@ -44,10 +44,8 @@ export async function POST(req: Request) {
     const userId = session?.id
 
     const pgfileUpload = await saveUserFile(userId,file,filePath)
-    // console.log('pgfileUpload',pgfileUpload)
     
-    
-    
+      
     return NextResponse.json({
       file:file,
       filepath: filePath,
@@ -71,7 +69,7 @@ export async function GET() {
 
   try {
     const files = await getUserFiles(session.id);
-    // console.log("files",files)
+   
     const processedFiles = files.map(file=>{
       const publicPath = file.filepath.replace('./public', '');
        return {
@@ -79,7 +77,6 @@ export async function GET() {
     filepath: publicPath
   };
     })
-    console.log(processedFiles);
     return NextResponse.json(processedFiles);
   } catch (err) {
     console.error(err);
@@ -99,17 +96,16 @@ interface BODY{
 }
 
 export async function DELETE(req:Request) {
-  console.log('req for delete', req)
+
   try {
     const body:BODY = await req.json();
     
-    // console.log("================> req",body)
+
     const publicFilepath = "./public"+body.file.filepath
-    console.log("filepath for deletion",publicFilepath)
     fs.unlinkSync(publicFilepath)
    
     const dbRes = await deleteFile(body.file.id);
-    // console.log("deleted from db ", dbRes);
+  
 
     return NextResponse.json(
       { message: "File deleted successfully", dbRes },
@@ -128,17 +124,15 @@ export async function PUT(req:Request){
   try{
     const formData  = await req.formData() as FormData;
     const formObject:any = Object.fromEntries(formData.entries());
-    console.log("update::::: formObject",formObject)
+   
     
 
     // Save file manually since App Router doesn’t support req.file directly
     const bytes = Buffer.from(await formObject.file.arrayBuffer());
-    // console.log("byteData", bytes)
     const filePath = `./public/uploads/${Date.now()}-${formObject.file.name}`;
     await fs.promises.writeFile(filePath, bytes);
     const update = await updateFile(formObject.oldFileId,formObject.file,filePath)
 
-    // console.log("update::::",update)
     return NextResponse.json({
       message:"data agya",
       status:201
